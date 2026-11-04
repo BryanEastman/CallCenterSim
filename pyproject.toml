@@ -1,0 +1,27 @@
+[project]
+name = "callcenter"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "qwen", email = "." }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "dbt-duckdb>=1.11.0",
+    "polars>=2.1.0",
+    "simpy>=4.1.2",
+]
+
+[project.scripts]
+callcenter = "callcenter:main"
+
+[build-system]
+requires = ["uv_build>=0.13.5,<0.14.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.17.3",
+    "ty>=0.0.92",
+]
