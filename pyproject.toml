@@ -10,6 +10,7 @@ requires-python = ">=3.14"
 dependencies = [
     "dbt-duckdb>=1.11.0",
     "polars>=2.1.0",
+    "scipy>=1.18.1",
     "simpy>=4.1.2",
 ]
 
