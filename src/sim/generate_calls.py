@@ -4,11 +4,13 @@ from sim.sim_classes import Call, InboundCall, OutboundCall
 import simpy
 from datetime import datetime as dt, timedelta
 
+
+# TODO: remove these placeholders
 format_pattern = "%Y-%m-%d %H:%M:%S"
 day_start = dt.strptime("2026-11-06 00:00:00", format_pattern)
 day_end = day_start + timedelta(days=1)
 
-start_timestamp = day_start.timestamp()
+start_timestamp = int(day_start.timestamp())
 end_timestamp = day_end.timestamp()
 
 
@@ -38,7 +40,8 @@ def generate_call_data(
         OutboundCall(
             env,
             call_id=f"gen_ob_{n}",
-            arrival_time=max(1, int(rng.normal(loc=day_mid, scale=day_len / 6))),
+            arrival_time=max(1, int(rng.normal(loc=day_mid, scale=day_len / 6)))
+            + start_timestamp,  # TODO: remove
             handle_time=int(rng.gamma(shape=3, scale=70)),
         )
         for n in range(n_outbound)
@@ -48,7 +51,8 @@ def generate_call_data(
         InboundCall(
             env,
             call_id=f"gen_ib_{n}",
-            arrival_time=max(1,int(rng.normal(loc=day_mid, scale=day_len / 6))),
+            arrival_time=max(1, int(rng.normal(loc=day_mid, scale=day_len / 6)))
+            + start_timestamp,  # TODO: remove
             handle_time=int(rng.gamma(shape=2, scale=180)),
             patience=int(rng.gamma(shape=1, scale=20)),
         )

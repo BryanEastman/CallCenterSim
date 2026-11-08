@@ -1,4 +1,3 @@
-from simpy.core import Environment
 import simpy
 import heapq
 from enum import Enum
@@ -27,7 +26,7 @@ class CallCenter:
         call_list: list[Call],
         day_end: int,
     ):
-        self.env: Environment = env
+        self.env: simpy.Environment = env
         self.agents_list: list[Agent] = agents_list
         self.call_list: list[Call] = call_list
         self.day_end = day_end
@@ -130,7 +129,9 @@ class CallCenter:
                 call.state = CallState.TIMEOUT
                 call.canceled_at_time = self.env.now
                 self.completed_calls.append(call)
-                print(f"Call Canceled: {call.call_id} -> {call.state.value}: {self.env.now}")
+                print(
+                    f"Call Canceled: {call.call_id} -> {call.state.value}: {self.env.now}"
+                )
 
 
 class Agent(simpy.Resource):
@@ -141,7 +142,7 @@ class Agent(simpy.Resource):
         schedule: list[tuple[AgentState, int]],
     ):
         self.agent_id = agent_id
-        self.env: Environment = env
+        self.env: simpy.Environment = env
         self._state: AgentState = AgentState.OFFLINE
         self.state_start: float = 0
         self.schedule: list[tuple[AgentState, int]] = schedule
