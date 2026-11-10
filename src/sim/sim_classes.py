@@ -48,12 +48,12 @@ class CallCenter:
     def handle_call(self, call: Call, agent: Agent):
         agent.busy = True
         call.handled_at_time = self.env.now
-        print(
-            f"call {call.call_id} handled by {agent.agent_id} at {self.env.now} for {call.handle_time} seconds."
-        )
+
         call.state = CallState.COMPLETED
 
         yield self.env.timeout(call.handle_time)
+
+        call.completed_at_time = self.env.now
 
         self.completed_calls.append(call)
         if agent.state == AgentState.AVAILABLE:
@@ -69,8 +69,6 @@ class CallCenter:
         if isinstance(call, InboundCall):
             self.env.process(self.abandon_after_patience(call))
 
-        print(f"Call Queued: {call.call_id} -> {call.state.value}: {self.env.now}")
-
         self.dispatch_calls()
 
     def abandon_after_patience(self, call: InboundCall):
@@ -80,12 +78,11 @@ class CallCenter:
         if call.state == CallState.QUEUED:
             call.state = CallState.CANCELED
             call.canceled_at_time = self.env.now
+            call.handle_time = 0
 
             self.completed_calls.append(call)
             self.waiting_call_queue.remove(call)
-            print(
-                f"Abandoned Call: {call.call_id} -> {call.state.value}: {self.env.now}"
-            )
+
             heapq.heapify(self.waiting_call_queue)
 
     def process_schedule(self, agent: Agent):
@@ -111,7 +108,6 @@ class CallCenter:
                     )  # after removing, reset the queue to retain sort
 
             self.dispatch_calls()
-            print(f"{agent.agent_id} -> {agent.state.value}: {self.env.now}")
 
     def dispatch_calls(self):
 
@@ -128,10 +124,23 @@ class CallCenter:
             if not isinstance(call, InboundCall):
                 call.state = CallState.TIMEOUT
                 call.canceled_at_time = self.env.now
+                call.handle_time = 0
                 self.completed_calls.append(call)
-                print(
-                    f"Call Canceled: {call.call_id} -> {call.state.value}: {self.env.now}"
-                )
+
+    def get_results(self):
+        call_results = [
+            (
+                call.call_id,
+                call.arrival_time,
+                call.handled_at_time,
+                call.canceled_at_time,
+                call.completed_at_time,
+                call.state.value,
+            )
+            for call in self.completed_calls
+        ]
+
+        return call_results
 
 
 class Agent(simpy.Resource):
@@ -175,12 +184,12 @@ class Call:
         self.arrival_time = arrival_time
         self.handle_time = handle_time
         self._state: CallState = CallState.INACTIVE
-        self.state_time: int = 0
         self.priority = priority
 
         # event timestamps
-        self.handled_at_time = None
-        self.canceled_at_time = None
+        self.handled_at_time: None | float = None
+        self.canceled_at_time: None | float = None
+        self.completed_at_time: None | float = None
 
     def __lt__(self, other):
         return (self.priority, self.arrival_time) < (other.priority, other.arrival_time)
@@ -200,6 +209,7 @@ class OutboundCall(Call):
     ):
         super().__init__(env, call_id, arrival_time, handle_time)
         self.priority = 1
+        self.name = "Outbound"
 
 
 class InboundCall(Call):
@@ -209,3 +219,4 @@ class InboundCall(Call):
         super().__init__(env, call_id, arrival_time, handle_time)
         self.patience: int = patience
         self.priority = 0
+        self.name = "Inbound"

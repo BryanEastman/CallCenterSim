@@ -62,6 +62,7 @@ def build_shift(shift_start: time, shift_alt: bool) -> list[tuple[AgentState, in
 
 
 # take a fixed number of agents and evenly distribute shifts by 4 blocks, each with an alt break
+# TODO: refactor this, no more hardcoding shift rules
 def distribute_agents_by_schedule(n_agents: int, env: Environment) -> list[Agent]:
     agents_per_shift = math.floor(n_agents / 8)
     print("building agents")

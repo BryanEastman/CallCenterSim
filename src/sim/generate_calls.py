@@ -31,7 +31,7 @@ def generate_call_data(
     day_mid: float,
     day_len: int,
     seed: int = 42,
-) -> list[Call]:  # TODO
+) -> list[Call]:
     call_list: list[Call] = []
 
     rng = np.random.default_rng(seed)
