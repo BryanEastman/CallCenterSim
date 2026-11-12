@@ -32,7 +32,7 @@ class CallCenter:
         self.day_end = day_end
 
         # manager lists for active and completed calls
-        self.available_agents: list[Agent] = []
+        # self.available_agents: list[Agent] = []
         self.waiting_call_queue: list[Call] = []
         self.completed_calls: list[Call] = []
 
@@ -46,19 +46,15 @@ class CallCenter:
         self.close_queues_proc = env.process(self.end_day())
 
     def handle_call(self, call: Call, agent: Agent):
-        agent.busy = True
         call.handled_at_time = self.env.now
-
+        agent.busy = True
         call.state = CallState.COMPLETED
 
         yield self.env.timeout(call.handle_time)
 
         call.completed_at_time = self.env.now
-
+        agent.busy = False
         self.completed_calls.append(call)
-        if agent.state == AgentState.AVAILABLE:
-            self.busy = False
-            heapq.heappush(self.available_agents, agent)
 
     def queue_calls(self, call: Call):
         yield self.env.timeout(call.arrival_time - self.env.now)
@@ -94,26 +90,22 @@ class CallCenter:
             agent.state = state_name
             agent.state_start = self.env.now
 
-            if agent.state == AgentState.AVAILABLE:
-                heapq.heappush(self.available_agents, agent)
-
-            if agent.state != AgentState.AVAILABLE:
-                try:
-                    self.available_agents.remove(agent)
-                except ValueError:
-                    pass
-                else:
-                    heapq.heapify(
-                        self.available_agents
-                    )  # after removing, reset the queue to retain sort
-
             self.dispatch_calls()
 
-    def dispatch_calls(self):
+    def filter_agents(self, a: Agent):
+        return a.state == AgentState.AVAILABLE and not a.busy
 
-        while self.waiting_call_queue and self.available_agents:
+
+    def dispatch_calls(self):
+        while self.waiting_call_queue:
+
+            agents_available = sorted(filter(self.filter_agents, self.agents_list), key=lambda x: x.state_start)
+            next_agent = next(iter(agents_available))
+
+            if next_agent is None:
+                break
+
             next_call: Call = heapq.heappop(self.waiting_call_queue)
-            next_agent: Agent = heapq.heappop(self.available_agents)
 
             self.env.process(self.handle_call(next_call, next_agent))
 
@@ -155,7 +147,7 @@ class Agent(simpy.Resource):
         self._state: AgentState = AgentState.OFFLINE
         self.state_start: float = 0
         self.schedule: list[tuple[AgentState, int]] = schedule
-        self.busy: bool = False
+        self.busy = False
 
     @property
     def state(self):
