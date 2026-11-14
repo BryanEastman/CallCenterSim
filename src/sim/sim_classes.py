@@ -1,6 +1,19 @@
 import simpy
 import heapq
 from enum import Enum
+from datetime import datetime as dt
+from dataclasses import dataclass
+
+
+@dataclass
+class AgentLog:
+    agent_id: str
+    agent_state: str
+    agent_state_time: float
+
+
+# class Logger:
+#     def __init__(self, )
 
 
 class AgentState(Enum):
@@ -32,11 +45,10 @@ class CallCenter:
         self.day_end = day_end
 
         # manager lists for active and completed calls
-        # self.available_agents: list[Agent] = []
         self.waiting_call_queue: list[Call] = []
         self.completed_calls: list[Call] = []
 
-        # manager lists for active agents
+        # process initializers
         self.schedule_processes = [
             env.process(self.process_schedule(a)) for a in self.agents_list
         ]
@@ -44,6 +56,10 @@ class CallCenter:
             env.process(self.queue_calls(call=c)) for c in self.call_list
         ]
         self.close_queues_proc = env.process(self.end_day())
+
+        # log files
+        self.call_log = []
+        self.agent_state_log = []
 
     def handle_call(self, call: Call, agent: Agent):
         call.handled_at_time = self.env.now
@@ -57,7 +73,6 @@ class CallCenter:
 
     def queue_calls(self, call: Call):
         yield self.env.timeout(call.arrival_time - self.env.now)
-
         call.state = CallState.QUEUED
         heapq.heappush(self.waiting_call_queue, call)
 
@@ -89,16 +104,20 @@ class CallCenter:
             agent.state = state_name
             agent.state_start = self.env.now
 
+            log_entry = AgentLog(agent.agent_id, agent._state.value, agent.env.now)
+            self.agent_state_log.append(log_entry)
+
             self.dispatch_calls()
 
     def filter_agents(self, a: Agent):
         return a.state == AgentState.AVAILABLE and not a.busy
 
-
     def dispatch_calls(self):
         while self.waiting_call_queue:
-
-            agents_available = sorted(filter(self.filter_agents, self.agents_list), key=lambda x: x.state_start)
+            agents_available = sorted(
+                filter(self.filter_agents, self.agents_list),
+                key=lambda x: x.state_start,
+            )
             next_agent = next(iter(agents_available), None)
 
             if next_agent is None:
@@ -128,6 +147,7 @@ class CallCenter:
                 call.canceled_at_time,
                 call.completed_at_time,
                 call.state.value,
+                call.name,
             )
             for call in self.completed_calls
         ]
@@ -177,6 +197,7 @@ class Call:
         self.handle_time = handle_time
         self._state: CallState = CallState.INACTIVE
         self.priority = priority
+        self.name = None
 
         # event timestamps
         self.handled_at_time: None | float = None
