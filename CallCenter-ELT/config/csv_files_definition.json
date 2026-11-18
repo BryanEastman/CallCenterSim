@@ -2,6 +2,6 @@
     {
         "entity": "Calls",
         "path": "../data/call_logs",
-        "keys": "Call ID"
+        "keys": ["CallID"]
     }
 ]

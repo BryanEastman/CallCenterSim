@@ -19,6 +19,14 @@ plugins:
   - name: target-duckdb
     variant: meltanolabs
     pip_url: git+https://github.com/MeltanoLabs/target-duckdb.git
+    config:
+      add_metadata_columns: true
+      database: CallCenterDB
+      default_target_schema: bronze
+      hard_delete: true
+      temp_dir: ${MELTANO_PROJECT_ROOT}/output/temp
+      filepath: ${MELTANO_PROJECT_ROOT}/output/CallCenterDB.duckdb
+      primary_key_required: false
   utilities:
   - name: dbt-duckdb
     variant: jwills
