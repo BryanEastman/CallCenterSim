@@ -84,6 +84,8 @@ def main() -> None:
     ).with_columns(
         arrival_hour=pl.col("Arrival Time").dt.hour(),
         abandoned=pl.when(pl.col("Call State") == "canceled").then(1).otherwise(0),
+    ).rename(
+        {"Call ID": "CallID"}
     )
     print(summary_df.head())
     print(summary_df.select("Wait Seconds", "Handle Seconds").describe())
@@ -100,4 +102,4 @@ def main() -> None:
         .sort("arrival_hour")
     )
 
-    summary_df.write_csv(export_root / 'call_logs.out.csv')
+    summary_df.write_csv(export_root /'call_logs'/ 'call_logs.out.csv')
