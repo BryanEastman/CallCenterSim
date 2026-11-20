@@ -22,6 +22,7 @@ def time_to_seconds(t: time, day: int) -> int:
     return t.hour * 3600 + t.minute * 60 + t.second + day
 
 
+# TODO: agents are being initialized too late in the day - why
 def build_shift(
     shift_start: time, shift_alt: bool, start_timestamp
 ) -> list[tuple[AgentState, int]]:
@@ -47,7 +48,6 @@ def build_shift(
         (AgentState.AVAILABLE, break_2_end),
         (AgentState.OFFLINE, shift_end),
     ]
-
     return shift_tuple
 
 
@@ -57,10 +57,10 @@ def distribute_agents_by_schedule(
     n_agents: int, env: Environment, start_timestamp
 ) -> list[Agent]:
     agents_per_shift = math.floor(n_agents / 8)
-    shift_1 = time(0, 0, 0)
-    shift_2 = time(2, 0, 0)
-    shift_3 = time(3, 30, 0)
-    shift_4 = time(5, 0, 0)
+    shift_1 = time(8, 0, 0)
+    shift_2 = time(12, 0, 0)
+    shift_3 = time(11, 30, 0)
+    shift_4 = time(13, 0, 0)
 
     counter = 0
     agent_list: list[Agent] = []

@@ -18,6 +18,8 @@ def run_sim(day_start) -> CallCenter:
     tcpa_start = day_start + timedelta(hours=8)
     tcpa_end = day_start + timedelta(hours=21)
 
+    day_start_timestamp: int = int(day_start.timestamp())
+
     start_timestamp: int = int(tcpa_start.timestamp())
     end_timestamp: int = int(tcpa_end.timestamp())
 
@@ -25,14 +27,15 @@ def run_sim(day_start) -> CallCenter:
     day_mid = int(day_len / 2)
 
     env = simpy.Environment()
-    synthetic_agents = distribute_agents_by_schedule(88, env, start_timestamp)
+    synthetic_agents = distribute_agents_by_schedule(88, env, day_start_timestamp)
 
     agents: list[Agent] = synthetic_agents
     synthetic_call = generate_call_data(
         env,
         300,
         500,
-        date_start=start_timestamp - int(day_mid / 2),
+        date_start=day_start_timestamp,
+        tcpa_start = start_timestamp,
         day_mid=day_mid,
         day_len=day_len,
     )
@@ -71,21 +74,27 @@ def main() -> None:
         orient="row",
         infer_schema_length=len(all_results),
     )
-    summary_df = df.with_columns(
-        (
-            pl.coalesce(pl.col("Handled Time"), pl.col("Canceled Time"))
-            - pl.col("Arrival Time")
-        ).alias("Wait Seconds"),
-        (pl.col("Completed Time") - pl.col("Handled Time")).alias("Handle Seconds"),
-        pl.from_epoch(
-            pl.col(["Arrival Time", "Handled Time", "Canceled Time", "Completed Time"]),
-            time_unit="s",
-        ),
-    ).with_columns(
-        arrival_hour=pl.col("Arrival Time").dt.hour(),
-        abandoned=pl.when(pl.col("Call State") == "canceled").then(1).otherwise(0),
-    ).rename(
-        {"Call ID": "CallID"}
+    summary_df = (
+        df.with_columns(
+            (
+                pl.coalesce(pl.col("Handled Time"), pl.col("Canceled Time"))
+                - pl.col("Arrival Time")
+            ).alias("Wait Seconds"),
+            (pl.col("Completed Time") - pl.col("Handled Time")).alias("Handle Seconds"),
+            pl.from_epoch(
+                pl.col(
+                    ["Arrival Time", "Handled Time", "Canceled Time", "Completed Time"]
+                ),
+                time_unit="s",
+            )
+            .dt.replace_time_zone("UTC")
+            .dt.convert_time_zone("America/Chicago"),
+        )
+        .with_columns(
+            arrival_hour=pl.col("Arrival Time").dt.hour(),
+            abandoned=pl.when(pl.col("Call State") == "canceled").then(1).otherwise(0),
+        )
+        .rename({"Call ID": "CallID"})
     )
     print(summary_df.head())
     print(summary_df.select("Wait Seconds", "Handle Seconds").describe())
@@ -101,5 +110,4 @@ def main() -> None:
         )
         .sort("arrival_hour")
     )
-
-    summary_df.write_csv(export_root /'call_logs'/ 'call_logs.out.csv')
+    summary_df.write_csv(export_root / "call_logs" / "call_logs.out.csv")

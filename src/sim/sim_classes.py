@@ -63,7 +63,6 @@ class CallCenter:
 
     def handle_call(self, call: Call, agent: Agent):
         call.handled_at_time = self.env.now
-        call.state = CallState.COMPLETED
 
         yield self.env.timeout(call.handle_time)
 
@@ -118,14 +117,16 @@ class CallCenter:
                 filter(self.filter_agents, self.agents_list),
                 key=lambda x: x.state_start,
             )
-            next_agent = next(iter(agents_available), None)
+            next_agent: Agent | None = next(iter(agents_available), None)
 
             if next_agent is None:
                 break
 
             next_agent.busy = True
-            next_call: Call = heapq.heappop(self.waiting_call_queue)
+            next_agent.state_start = self.env.now
 
+            next_call: Call = heapq.heappop(self.waiting_call_queue)
+            next_call.state = CallState.COMPLETED
             self.env.process(self.handle_call(next_call, next_agent))
 
     def end_day(self):
@@ -176,7 +177,6 @@ class Agent(simpy.Resource):
     @state.setter
     def state(self, value):
         self._state: AgentState = value
-        self.state_start = self.env.now
 
     def __lt__(self, other):
         return (self.state_start) < (other.state_start)
