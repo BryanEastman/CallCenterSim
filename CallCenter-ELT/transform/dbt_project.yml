@@ -1,4 +1,4 @@
-name: my_meltano_project
+name: CallCenter
 version: '1.0'
 profile: meltano
 config-version: 2
@@ -25,3 +25,16 @@ clean-targets:
 - target
 - dbt_packages
 - logs
+
+models:
+  CallCenter:
+    staging:
+      +schema: silver
+      +materialized: view
+      +docs:
+        node_color: silver
+    marts:
+      +schema: gold
+      +materialized: view
+      +docs:
+        node_color: gold

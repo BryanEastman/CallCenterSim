@@ -33,4 +33,4 @@ plugins:
     pip_url: dbt-core dbt-duckdb meltano-dbt-ext~=0.5.0
     config:
       path: ${MELTANO_PROJECT_ROOT}/output/CallCenterDB.duckdb
-      schema: silver
+      schema: ''
