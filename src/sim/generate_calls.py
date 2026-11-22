@@ -26,7 +26,7 @@ def generate_call_data(
     rng = np.random.default_rng(seed)
 
     # TODO: DRY
-    
+
     generated_outbound = [
         OutboundCall(
             env,

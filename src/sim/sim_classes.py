@@ -2,7 +2,15 @@ import simpy
 import heapq
 from enum import Enum
 from datetime import datetime as dt
+import datetime
 from dataclasses import dataclass
+from pathlib import Path
+import os
+import polars as pl
+
+EXPORT_ROOT=Path(str(os.getenv("EXPORT_ROOT")))
+CALL_LOG_PATH= EXPORT_ROOT / 'call_logs'
+STATE_LOG_PATH = EXPORT_ROOT / 'agent_state_logs'
 
 
 @dataclass
@@ -37,12 +45,15 @@ class CallCenter:
         env: simpy.Environment,
         agents_list: list[Agent],
         call_list: list[Call],
+        day_start: int,
         day_end: int,
     ):
         self.env: simpy.Environment = env
         self.agents_list: list[Agent] = agents_list
         self.call_list: list[Call] = call_list
-        self.day_end = day_end
+        self.day_start: int = day_start
+        self.day_end: int = day_end
+        self.day_string_formatted: str = dt.fromtimestamp(self.day_start).strftime("%y-%m-%d")
 
         # manager lists for active and completed calls
         self.waiting_call_queue: list[Call] = []
@@ -140,6 +151,7 @@ class CallCenter:
                 self.completed_calls.append(call)
 
     def get_results(self):
+        """Parse both logs and write csv to paths"""
         call_results = [
             (
                 call.call_id,
@@ -152,8 +164,44 @@ class CallCenter:
             )
             for call in self.completed_calls
         ]
+        
+        agent_results = [
+            (
+                agent.agent_id,
+                agent.agent_state,
+                agent.agent_state_time
+            )
+            for agent in self.agent_state_log
+        ]
 
-        return call_results
+        call_df = pl.DataFrame(
+            call_results,
+            schema=[
+                "Call ID",
+                "Arrival Time",
+                "Handled Time",
+                "Canceled Time",
+                "Completed Time",
+                "Call State",
+                "Call Direction",
+            ],
+            orient="row",
+            infer_schema_length=len(call_results)
+        )
+
+        agent_df = pl.DataFrame(
+            agent_results,
+            schema = [
+                "Agent ID"
+                , "Agent State"
+                , "Agent State Timestamp"
+            ],
+            orient="row",
+            infer_schema_length=len(call_results)
+        )
+
+        call_df.write_csv(CALL_LOG_PATH / f"{self.day_string_formatted}_calls.csv")
+        agent_df.write_csv(STATE_LOG_PATH / f"{self.day_string_formatted}_statelog.csv")        
 
 
 class Agent(simpy.Resource):

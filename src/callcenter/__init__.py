@@ -1,3 +1,4 @@
+from datetime import datetime as dt
 from sim.sim_classes import *
 from sim.generate_calls import *
 from sim.generate_agents import *
@@ -11,7 +12,7 @@ import simpy
 export_root = Path(str(os.getenv("EXPORT_ROOT")))
 
 
-def run_sim(day_start) -> CallCenter:
+def run_sim(day_start: dt) -> CallCenter:
 
     day_end = day_start + timedelta(days=1)
 
@@ -32,16 +33,16 @@ def run_sim(day_start) -> CallCenter:
     agents: list[Agent] = synthetic_agents
     synthetic_call = generate_call_data(
         env,
-        300,
-        500,
+        n_inbound=300,
+        n_outbound=500,
         date_start=day_start_timestamp,
-        tcpa_start = start_timestamp,
+        tcpa_start=start_timestamp,
         day_mid=day_mid,
         day_len=day_len,
     )
     calls: list[Call] = synthetic_call
 
-    center = CallCenter(env, agents, calls, day_end=end_timestamp)
+    center = CallCenter(env, agents_list=agents, call_list=calls, day_start=day_start_timestamp, day_end=end_timestamp)
 
     env.run()
     return center
@@ -51,63 +52,12 @@ def main() -> None:
     start_date = "2026-11-06 00:00:00"
 
     format_pattern = "%Y-%m-%d %H:%M:%S"
-    day_start = dt.strptime(start_date, format_pattern)
+    day_start: dt = dt.strptime(start_date, format_pattern)
 
-    days = [day_start + timedelta(days=n) for n in range(0, 14)]
-    runs = [run_sim(day) for day in days]
 
-    res = [run.get_results() for run in runs]
+    for n in range(0,14):
+        day = day_start + timedelta(n)
+        run = run_sim(day)
+        run.get_results()
 
-    all_results = list(itertools.chain.from_iterable(res))
-
-    df = pl.DataFrame(
-        all_results,
-        schema=[
-            "Call ID",
-            "Arrival Time",
-            "Handled Time",
-            "Canceled Time",
-            "Completed Time",
-            "Call State",
-            "Call Direction",
-        ],
-        orient="row",
-        infer_schema_length=len(all_results),
-    )
-    summary_df = (
-        df.with_columns(
-            (
-                pl.coalesce(pl.col("Handled Time"), pl.col("Canceled Time"))
-                - pl.col("Arrival Time")
-            ).alias("Wait Seconds"),
-            (pl.col("Completed Time") - pl.col("Handled Time")).alias("Handle Seconds"),
-            pl.from_epoch(
-                pl.col(
-                    ["Arrival Time", "Handled Time", "Canceled Time", "Completed Time"]
-                ),
-                time_unit="s",
-            )
-            .dt.replace_time_zone("UTC")
-            .dt.convert_time_zone("America/Chicago"),
-        )
-        .with_columns(
-            arrival_hour=pl.col("Arrival Time").dt.hour(),
-            abandoned=pl.when(pl.col("Call State") == "canceled").then(1).otherwise(0),
-        )
-        .rename({"Call ID": "CallID"})
-    )
-    print(summary_df.head())
-    print(summary_df.select("Wait Seconds", "Handle Seconds").describe())
-    print(
-        summary_df.group_by(["arrival_hour", "Call Direction"])
-        .agg(
-            pl.col("abandoned").sum().alias("sum"),
-            pl.col("abandoned").mean().alias("mean"),
-            pl.col("abandoned").len().alias("count"),
-        )
-        .pivot(
-            index="arrival_hour", on="Call Direction", values=["sum", "mean", "count"]
-        )
-        .sort("arrival_hour")
-    )
-    summary_df.write_csv(export_root / "call_logs" / "call_logs.out.csv")
+    
