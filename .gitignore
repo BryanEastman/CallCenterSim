@@ -8,3 +8,15 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Storage Paths
+data/
+
+# Meltano stuff
+/venv
+.meltano
+.env
+
+# Other Files
+*.csv
+*.duckdb
