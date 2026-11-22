@@ -2,6 +2,11 @@
     {
         "entity": "Calls",
         "path": "../data/call_logs",
-        "keys": ["CallID"]
+        "keys": []
+    },
+    {
+        "entity": "State Log",
+        "path": "../data/agent_state_logs",
+        "keys": []
     }
 ]

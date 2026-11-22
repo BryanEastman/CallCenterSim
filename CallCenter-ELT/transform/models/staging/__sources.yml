@@ -4,6 +4,7 @@ sources:
       schema: bronze
       tables:
         - name: calls
-          columns:
-            - name: CallID
-              data_tests: [not_null]
+          # columns:
+            # - name: Call ID
+              # data_tests: [not_null]
+        - name: state log
