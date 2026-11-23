@@ -1,5 +1,5 @@
 WITH calls AS (
-    SELECXT *
+    SELECT *
     FROM {{ source ('silver', 'stg_calls') }}
 )
 

@@ -1,7 +1,8 @@
 version: 2
 sources:
   - name: silver
-    schema: silver
+    schema: main_silver
     tables:
       - name: stg_agentstate
       - name: stg_calls
+      - name: stg_calendar
